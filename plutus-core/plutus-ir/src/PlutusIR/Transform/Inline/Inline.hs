@@ -24,8 +24,7 @@ import PlutusCore.Annotation
 import PlutusCore.Builtin qualified as PLC
 import PlutusCore.Name
 import PlutusCore.Quote
-import PlutusCore.Rename (dupable, liftDupable)
-import PlutusCore.Subst (typeSubstTyNamesM)
+import PlutusCore.Rename (dupable)
 
 import Control.Lens hiding (Strict)
 import Control.Monad.Reader
@@ -130,8 +129,8 @@ inline them. But at least in UPLC we _can_ inline them.
 Inlining relies on global uniqueness (we store things in a unique map), and *does* currently
 preserve it because we don't inline anything with binders in unconditional inlining.
 
-With call site inlining, we do inlining things with binders in them. We will give the binders fresh
-name when we substitute in to preserve uniqueness in that case. TODO in a follow up PR.
+With call site inlining, we do inlining things with binders in them. We give the binders fresh
+name when we substitute in to preserve uniqueness in that case.
 -}
 
 -- | Inline non-recursive bindings. Relies on global uniqueness, and preserves it.
@@ -202,43 +201,6 @@ processTerm = handleTerm <=< traverseOf termSubtypes applyTypeSubstitution where
             -- If we use the context-based approach like in GHC, this won't be a problem, so we may
             -- consider that in the future.
             considerInlineSat processedT
-
-applyTypeSubstitution :: forall tyname name uni fun ann. InliningConstraints tyname name uni fun
-    => Type tyname uni ann
-    -> InlineM tyname name uni fun ann (Type tyname uni ann)
-applyTypeSubstitution t = gets isTypeSubstEmpty >>= \case
-    -- The type substitution is very often empty, and there are lots of types in the program,
-    -- so this saves a lot of work (determined from profiling)
-    True -> pure t
-    _    -> typeSubstTyNamesM substTyName t
-
--- See Note [Renaming strategy]
-substTyName :: forall tyname name uni fun ann. InliningConstraints tyname name uni fun
-    => tyname
-    -> InlineM tyname name uni fun ann (Maybe (Type tyname uni ann))
-substTyName tyname = gets (lookupType tyname) >>= traverse liftDupable
-
--- See Note [Renaming strategy]
-substName :: forall tyname name uni fun ann. InliningConstraints tyname name uni fun
-    => name
-    -> InlineM tyname name uni fun ann (Maybe (Term tyname name uni fun ann))
-substName name = gets (lookupTerm name) >>= traverse renameTerm
-
--- See Note [Inlining approach and 'Secrets of the GHC Inliner']
--- Already processed term, just rename and put it in, don't do any further optimization here.
-renameTerm :: forall tyname name uni fun ann. InliningConstraints tyname name uni fun
-    => InlineTerm tyname name uni fun ann
-    -> InlineM tyname name uni fun ann (Term tyname name uni fun ann)
-renameTerm (Done t) = liftDupable t
-
-{- Note [Renaming strategy]
-Since we assume global uniqueness, we can take a slightly different approach to
-renaming:  we rename the term we are substituting in, instead of renaming
-every binder that our substitution encounters, which should guarantee that we
-avoid any variable capture.
-
-We rename both terms and types as both may have binders in them.
--}
 
 -- | Run the inliner on a single non-recursive let binding.
 processSingleBinding
