@@ -110,7 +110,7 @@ type Arity = [ParamKind]
 data VarInfo tyname name uni fun ann =
   MkVarInfo {
     varStrictness :: Strictness
-    ,varDef       :: Term tyname name uni fun ann
+    ,varDef       :: InlineTerm tyname name uni fun ann
     -- ^ its definition that has been unconditionally inlined.
     , arity       :: Arity -- ^ its arity, storing to avoid repeated calculations.
     , varBody     :: Term tyname name uni fun ann

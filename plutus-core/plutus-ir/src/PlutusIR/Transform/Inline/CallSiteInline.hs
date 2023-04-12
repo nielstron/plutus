@@ -178,7 +178,10 @@ considerInlineSat tm = do
         case maybeVarInfo of
           Just varInfo -> do
             let body = varBody varInfo
-                def = varDef varInfo
+                defAsInlineTerm = varDef varInfo
+                inlineTermToTerm :: InlineTerm tyname name uni fun ann
+                  -> Term tyname name uni fun ann
+                inlineTermToTerm (Done (Dupable var)) = var
                 fullyApplied = isFullyApplied (arity varInfo) (map fst args)
             -- It is the body that we will be left with in the program after we have
             -- reduced the saturated application, so the size increase we will be left
@@ -188,7 +191,7 @@ considerInlineSat tm = do
             -- of that is acceptable. Note that we do _not_ check the cost of the _body_.
             -- We would have paid that regardless.
             -- Consider e.g. `let y = \x. f x`. We pay the cost of the `f x` at every call
-            -- site regardless. The work that is being duplicated is the work for the lambda.
+            -- site regardless. The work that is being duplicated is the work for the labmda.
                 defCostOk = costIsAcceptable (inlineTermToTerm defAsInlineTerm)
             -- check if binding is pure to avoid duplicated effects.
             -- For strict bindings we can't accidentally make any effects happen less often than
@@ -204,4 +207,5 @@ considerInlineSat tm = do
           -- The variable maybe a *recursive* let binding, in which case it won't be in the map,
           -- and we don't process it. ATM recursive bindings aren't inlined.
           Nothing -> pure tm
+      -- if the term being applied is not a `Var`, don't inline
       _ -> pure tm
