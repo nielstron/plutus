@@ -183,15 +183,15 @@ considerInlineSat tm = do
                   -> Term tyname name uni fun ann
                 inlineTermToTerm (Done (Dupable var)) = var
                 fullyApplied = isFullyApplied (arity varInfo) (map fst args)
-            -- It is the body that we will be left with in the program after we have
-            -- reduced the saturated application, so the size increase we will be left
-            -- with comes from the body, and that is what we need to check is okay
+                -- It is the body that we will be left with in the program after we have
+                -- reduced the saturated application, so the size increase we will be left
+                -- with comes from the body, and that is what we need to check is okay
                 bodySizeOk = sizeIsAcceptable body
-            -- The definition itself will be inlined, so we need to check that the cost
-            -- of that is acceptable. Note that we do _not_ check the cost of the _body_.
-            -- We would have paid that regardless.
-            -- Consider e.g. `let y = \x. f x`. We pay the cost of the `f x` at every call
-            -- site regardless. The work that is being duplicated is the work for the labmda.
+                -- The definition itself will be inlined, so we need to check that the cost
+                -- of that is acceptable. Note that we do _not_ check the cost of the _body_.
+                -- We would have paid that regardless.
+                -- Consider e.g. `let y = \x. f x`. We pay the cost of the `f x` at every call
+                -- site regardless. The work that is being duplicated is the work for the labmda.
                 defCostOk = costIsAcceptable (inlineTermToTerm defAsInlineTerm)
             -- check if binding is pure to avoid duplicated effects.
             -- For strict bindings we can't accidentally make any effects happen less often than
